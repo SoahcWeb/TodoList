@@ -36,7 +36,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 
-// Réactifs
+// --- Données réactives ---
 const taches = reactive([
   { id: 1, libelle: 'Tâche 1', terminee: false, ordre: 1 },
   { id: 2, libelle: 'Tâche 2', terminee: false, ordre: 2 },
@@ -46,26 +46,27 @@ const nouvelleTache = ref('')
 const triCritere = ref('manuel')
 const prochainId = ref(Math.max(...taches.map(t => t.id)) + 1)
 
-// Clés LocalStorage
+// --- Constantes LocalStorage ---
 const CLE_LOCALSTORAGE_TACHES = 'todolist:taches'
 const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
-// Initialisation depuis localStorage
+// --- Initialisation depuis le LocalStorage ---
 const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
 if (tachesStockees) {
   const parsed = JSON.parse(tachesStockees)
   taches.splice(0, taches.length, ...parsed)
 }
+
 const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
 if (idStockee) prochainId.value = parseInt(idStockee)
 
-// Sauvegarder dans le localStorage
+// --- Sauvegarder les données dans LocalStorage ---
 function sauvegarder() {
   localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(taches))
   localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, prochainId.value)
 }
 
-// Ajouter une tâche
+// --- Ajouter une tâche ---
 function ajouterTache() {
   if (!nouvelleTache.value) return
   taches.push({
@@ -80,21 +81,21 @@ function ajouterTache() {
   sauvegarder()
 }
 
-// Basculer terminé / non terminé
+// --- Basculer terminé / non terminé ---
 function basculerTerminee(id) {
   const t = taches.find(t => t.id === id)
   if (t) t.terminee = !t.terminee
   sauvegarder()
 }
 
-// Supprimer une tâche
+// --- Supprimer une tâche ---
 function supprimerTache(id) {
   const index = taches.findIndex(t => t.id === id)
   if (index !== -1) taches.splice(index, 1)
   sauvegarder()
 }
 
-// Monter une tâche (ordre personnalisé)
+// --- Monter une tâche (ordre personnalisé) ---
 function monter(id) {
   if (triCritere.value !== 'manuel') return
   const index = taches.findIndex(t => t.id === id)
@@ -107,7 +108,7 @@ function monter(id) {
   }
 }
 
-// Descendre une tâche (ordre personnalisé)
+// --- Descendre une tâche (ordre personnalisé) ---
 function descendre(id) {
   if (triCritere.value !== 'manuel') return
   const index = taches.findIndex(t => t.id === id)
@@ -120,7 +121,7 @@ function descendre(id) {
   }
 }
 
-// Appliquer le tri selon critère
+// --- Appliquer le tri selon le critère ---
 function appliquerTri() {
   switch(triCritere.value) {
     case 'manuel':
