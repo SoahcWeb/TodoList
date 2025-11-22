@@ -55,10 +55,18 @@ const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
 if (tachesStockees) {
   const parsed = JSON.parse(tachesStockees)
   taches.splice(0, taches.length, ...parsed)
+  console.log("Tâches chargées depuis le localStorage :", taches)
+} else {
+  console.log("Pas de tâches sauvegardées, valeurs par défaut :", taches)
 }
 
 const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
-if (idStockee) prochainId.value = parseInt(idStockee)
+if (idStockee) {
+  prochainId.value = parseInt(idStockee)
+  console.log("prochainId chargé depuis localStorage :", prochainId.value)
+} else {
+  console.log("Pas de prochainId sauvegardé, valeur par défaut :", prochainId.value)
+}
 
 // --- Sauvegarder les données dans LocalStorage ---
 function sauvegarder() {
