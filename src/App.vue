@@ -2,8 +2,16 @@
   <h2>Exo Synthèse</h2>
 
   <!-- Formulaire d'ajout -->
-  <input v-model="nouvelleTache" placeholder="Nouvelle tâche">
-  <button @click="ajouterTache" :disabled="!nouvelleTache">Ajouter</button>
+  <input
+    v-model="nouvelleTache"
+    placeholder="Nouvelle tâche"
+  >
+  <button
+    @click="ajouterTache"
+    :disabled="!nouvelleTache"
+  >
+    Ajouter
+  </button>
 
   <!-- Menu de tri -->
   <select v-model="triCritere" @change="appliquerTri">
@@ -23,9 +31,12 @@
   <!-- Liste des tâches -->
   <ul v-if="taches.length > 0">
     <li v-for="tache in taches" :key="tache.id">
-      <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
-      <button @click="monter(tache.id)" :disabled="triCritere!=='manuel'">⬆</button>
-      <button @click="descendre(tache.id)" :disabled="triCritere!=='manuel'">⬇</button>
+      <span :class="{ terminee: tache.terminee }">
+        {{ tache.libelle }}
+      </span>
+
+      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel'">⬆</button>
+      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel'">⬇</button>
       <button @click="basculerTerminee(tache.id)">✔</button>
       <button @click="supprimerTache(tache.id)">🗑 Supprimer</button>
     </li>
@@ -42,6 +53,7 @@ const taches = reactive([
   { id: 2, libelle: 'Tâche 2', terminee: false, ordre: 2 },
   { id: 3, libelle: 'Tâche 3', terminee: false, ordre: 3 },
 ])
+
 const nouvelleTache = ref('')
 const triCritere = ref('manuel')
 const prochainId = ref(Math.max(...taches.map(t => t.id)) + 1)
@@ -52,23 +64,18 @@ const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
 // --- Initialisation depuis le LocalStorage ---
 const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
+
 if (tachesStockees) {
   const parsed = JSON.parse(tachesStockees)
   taches.splice(0, taches.length, ...parsed)
-  console.log("Tâches chargées depuis le localStorage :", taches)
-} else {
-  console.log("Pas de tâches sauvegardées, valeurs par défaut :", taches)
 }
 
 const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
 if (idStockee) {
   prochainId.value = parseInt(idStockee)
-  console.log("prochainId chargé depuis localStorage :", prochainId.value)
-} else {
-  console.log("Pas de prochainId sauvegardé, valeur par défaut :", prochainId.value)
 }
 
-// --- Sauvegarder les données dans LocalStorage ---
+// --- Sauvegarde ---
 function sauvegarder() {
   localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(taches))
   localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, prochainId.value)
@@ -77,19 +84,22 @@ function sauvegarder() {
 // --- Ajouter une tâche ---
 function ajouterTache() {
   if (!nouvelleTache.value) return
+
   taches.push({
     id: prochainId.value,
-    libelle: nouvelleTache.value,
+    libelle: nouvelleTache.value.trim(),
     terminee: false,
-    ordre: prochainId.value
+    ordre: prochainId.value,
   })
+
   prochainId.value++
   nouvelleTache.value = ''
+
   appliquerTri()
   sauvegarder()
 }
 
-// --- Basculer terminé / non terminé ---
+// --- Basculer terminé/non terminé ---
 function basculerTerminee(id) {
   const t = taches.find(t => t.id === id)
   if (t) t.terminee = !t.terminee
@@ -103,57 +113,76 @@ function supprimerTache(id) {
   sauvegarder()
 }
 
-// --- Monter une tâche (ordre personnalisé) ---
+// --- Monter une tâche ---
 function monter(id) {
   if (triCritere.value !== 'manuel') return
+
   const index = taches.findIndex(t => t.id === id)
   if (index > 0) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index - 1].ordre
     taches[index - 1].ordre = tmp
+
     appliquerTri()
     sauvegarder()
   }
 }
 
-// --- Descendre une tâche (ordre personnalisé) ---
+// --- Descendre une tâche ---
 function descendre(id) {
   if (triCritere.value !== 'manuel') return
+
   const index = taches.findIndex(t => t.id === id)
   if (index < taches.length - 1) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index + 1].ordre
     taches[index + 1].ordre = tmp
+
     appliquerTri()
     sauvegarder()
   }
 }
 
-// --- Appliquer le tri selon le critère ---
+// --- Tri ---
 function appliquerTri() {
-  switch(triCritere.value) {
+  switch (triCritere.value) {
     case 'manuel':
-      taches.sort((a,b) => a.ordre - b.ordre)
+      taches.sort((a, b) => a.ordre - b.ordre)
       break
     case 'creation':
-      taches.sort((a,b) => a.id - b.id)
+      taches.sort((a, b) => a.id - b.id)
       break
     case 'libelleAsc':
-      taches.sort((a,b) => a.libelle.localeCompare(b.libelle))
+      taches.sort((a, b) => a.libelle.localeCompare(b.libelle))
       break
     case 'libelleDesc':
-      taches.sort((a,b) => b.libelle.localeCompare(a.libelle))
+      taches.sort((a, b) => b.libelle.localeCompare(a.libelle))
       break
     case 'terminee':
-      taches.sort((a,b) => a.terminee - b.terminee || a.libelle.localeCompare(b.libelle))
+      taches.sort((a, b) =>
+        a.terminee - b.terminee ||
+        a.libelle.localeCompare(b.libelle)
+      )
       break
   }
 }
 </script>
 
 <style>
-li { margin-bottom: 5px; }
-.terminee { text-decoration: line-through; color: gray; }
-button { margin-left: 5px; }
-button:disabled { opacity: 0.5; }
+li {
+  margin-bottom: 5px;
+}
+
+.terminee {
+  text-decoration: line-through;
+  color: gray;
+}
+
+button {
+  margin-left: 5px;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
 </style>
