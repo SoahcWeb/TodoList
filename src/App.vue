@@ -2,16 +2,8 @@
   <h2>Exo Synthèse</h2>
 
   <!-- Formulaire d'ajout -->
-  <input
-    v-model="nouvelleTache"
-    placeholder="Nouvelle tâche"
-  >
-  <button
-    @click="ajouterTache"
-    :disabled="!nouvelleTache"
-  >
-    Ajouter
-  </button>
+  <input v-model="nouvelleTache" placeholder="Nouvelle tâche">
+  <button @click="ajouterTache" :disabled="!nouvelleTache">Ajouter</button>
 
   <!-- Menu de tri -->
   <select v-model="triCritere" @change="appliquerTri">
@@ -30,27 +22,28 @@
 
   <!-- Liste des tâches -->
   <ul v-if="taches.length > 0">
-    <li v-for="tache in taches" :key="tache.id">
-      <span :class="{ terminee: tache.terminee }">
-        {{ tache.libelle }}
-      </span>
+    <li v-for="(tache, index) in taches" :key="tache.id">
+      <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
 
-      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel'">⬆</button>
-      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel'">⬇</button>
+      <!-- Boutons réorganisation -->
+      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel' || index === 0">⬆</button>
+      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel' || index === taches.length - 1">⬇</button>
+
+      <!-- Boutons Jour 5 -->
       <button @click="basculerTerminee(tache.id)">✔</button>
       <button @click="supprimerTache(tache.id)">🗑 Supprimer</button>
     </li>
   </ul>
   <p v-else>Aucune tâche à afficher</p>
 
-  <!-- --- Test rapide Jour 5 --- -->
-  <h3>Test rapide Jour 5</h3>
-  <p>Cliquez sur ✔ pour basculer terminé/non terminé, 🗑 pour supprimer :</p>
+  <!-- --- Test rapide Jour 6 --- -->
+  <h3>Test rapide Jour 6</h3>
+  <p>Déplacer avec ⬆ et ⬇, basculer ✔ ou supprimer 🗑 :</p>
   <ul>
-    <li v-for="t in taches" :key="'test-' + t.id">
-      <span :style="{ textDecoration: t.terminee ? 'line-through' : 'none' }">
-        {{ t.libelle }}
-      </span>
+    <li v-for="(t, idx) in taches" :key="'test-' + t.id">
+      <span :style="{ textDecoration: t.terminee ? 'line-through' : 'none' }">{{ t.libelle }}</span>
+      <button @click="monter(t.id)" :disabled="idx === 0">⬆</button>
+      <button @click="descendre(t.id)" :disabled="idx === taches.length - 1">⬇</button>
       <button @click="basculerTerminee(t.id)">✔</button>
       <button @click="supprimerTache(t.id)">🗑</button>
     </li>
@@ -75,7 +68,7 @@ const prochainId = ref(Math.max(...taches.map(t => t.id)) + 1)
 const CLE_LOCALSTORAGE_TACHES = 'todolist:taches'
 const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
-// --- Initialisation depuis le LocalStorage ---
+// --- Initialisation depuis LocalStorage ---
 const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
 if (tachesStockees) {
   const parsed = JSON.parse(tachesStockees)
@@ -83,9 +76,7 @@ if (tachesStockees) {
 }
 
 const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
-if (idStockee) {
-  prochainId.value = parseInt(idStockee)
-}
+if (idStockee) prochainId.value = parseInt(idStockee)
 
 // --- Sauvegarde ---
 function sauvegarder() {
@@ -96,17 +87,14 @@ function sauvegarder() {
 // --- Ajouter une tâche ---
 function ajouterTache() {
   if (!nouvelleTache.value) return
-
   taches.push({
     id: prochainId.value,
     libelle: nouvelleTache.value.trim(),
     terminee: false,
     ordre: prochainId.value,
   })
-
   prochainId.value++
   nouvelleTache.value = ''
-
   appliquerTri()
   sauvegarder()
 }
@@ -128,13 +116,11 @@ function supprimerTache(id) {
 // --- Monter une tâche ---
 function monter(id) {
   if (triCritere.value !== 'manuel') return
-
   const index = taches.findIndex(t => t.id === id)
   if (index > 0) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index - 1].ordre
     taches[index - 1].ordre = tmp
-
     appliquerTri()
     sauvegarder()
   }
@@ -143,13 +129,11 @@ function monter(id) {
 // --- Descendre une tâche ---
 function descendre(id) {
   if (triCritere.value !== 'manuel') return
-
   const index = taches.findIndex(t => t.id === id)
   if (index < taches.length - 1) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index + 1].ordre
     taches[index + 1].ordre = tmp
-
     appliquerTri()
     sauvegarder()
   }
@@ -158,43 +142,18 @@ function descendre(id) {
 // --- Tri ---
 function appliquerTri() {
   switch (triCritere.value) {
-    case 'manuel':
-      taches.sort((a, b) => a.ordre - b.ordre)
-      break
-    case 'creation':
-      taches.sort((a, b) => a.id - b.id)
-      break
-    case 'libelleAsc':
-      taches.sort((a, b) => a.libelle.localeCompare(b.libelle))
-      break
-    case 'libelleDesc':
-      taches.sort((a, b) => b.libelle.localeCompare(a.libelle))
-      break
-    case 'terminee':
-      taches.sort((a, b) =>
-        a.terminee - b.terminee ||
-        a.libelle.localeCompare(b.libelle)
-      )
-      break
+    case 'manuel': taches.sort((a, b) => a.ordre - b.ordre); break
+    case 'creation': taches.sort((a, b) => a.id - b.id); break
+    case 'libelleAsc': taches.sort((a, b) => a.libelle.localeCompare(b.libelle)); break
+    case 'libelleDesc': taches.sort((a, b) => b.libelle.localeCompare(a.libelle)); break
+    case 'terminee': taches.sort((a, b) => a.terminee - b.terminee || a.libelle.localeCompare(b.libelle)); break
   }
 }
 </script>
 
 <style>
-li {
-  margin-bottom: 5px;
-}
-
-.terminee {
-  text-decoration: line-through;
-  color: gray;
-}
-
-button {
-  margin-left: 5px;
-}
-
-button:disabled {
-  opacity: 0.5;
-}
+li { margin-bottom: 5px; }
+.terminee { text-decoration: line-through; color: gray; }
+button { margin-left: 5px; }
+button:disabled { opacity: 0.5; }
 </style>
