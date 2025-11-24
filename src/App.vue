@@ -42,6 +42,19 @@
     </li>
   </ul>
   <p v-else>Aucune tâche à afficher</p>
+
+  <!-- --- Test rapide Jour 5 --- -->
+  <h3>Test rapide Jour 5</h3>
+  <p>Cliquez sur ✔ pour basculer terminé/non terminé, 🗑 pour supprimer :</p>
+  <ul>
+    <li v-for="t in taches" :key="'test-' + t.id">
+      <span :style="{ textDecoration: t.terminee ? 'line-through' : 'none' }">
+        {{ t.libelle }}
+      </span>
+      <button @click="basculerTerminee(t.id)">✔</button>
+      <button @click="supprimerTache(t.id)">🗑</button>
+    </li>
+  </ul>
 </template>
 
 <script setup>
@@ -64,7 +77,6 @@ const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
 // --- Initialisation depuis le LocalStorage ---
 const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
-
 if (tachesStockees) {
   const parsed = JSON.parse(tachesStockees)
   taches.splice(0, taches.length, ...parsed)
