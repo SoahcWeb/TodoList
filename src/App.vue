@@ -18,47 +18,24 @@
   <p>Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"</p>
 
   <!-- Compteurs -->
-  <p>Total : {{ taches.length }}</p>
-  <p>Terminées : {{ taches.filter(t => t.terminee).length }}</p>
+  <p>Total des tâches : {{ taches.length }}</p>
+  <p>Tâches terminées : {{ taches.filter(t => t.terminee).length }}</p>
 
-  <!-- Liste des tâches -->
+  <!-- Rendu conditionnel -->
   <ul v-if="taches.length > 0">
     <li v-for="(tache, index) in taches" :key="tache.id">
       <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
 
       <!-- Boutons réorganisation -->
-      <button @click="monter(tache.id)"
-              :disabled="triCritere !== 'manuel' || index === 0">
-        ⬆
-      </button>
+      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel' || index === 0">⬆</button>
+      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel' || index === taches.length - 1">⬇</button>
 
-      <button @click="descendre(tache.id)"
-              :disabled="triCritere !== 'manuel' || index === taches.length - 1">
-        ⬇
-      </button>
-
-      <!-- Terminer / Supprimer -->
+      <!-- Actions -->
       <button @click="basculerTerminee(tache.id)">✔</button>
       <button @click="supprimerTache(tache.id)">🗑 Supprimer</button>
     </li>
   </ul>
   <p v-else>Aucune tâche à afficher</p>
-
-  <!-- --- Test rapide Jour 6 --- -->
-  <h3>Test rapide Jour 6</h3>
-  <p>Déplacer avec ⬆ et ⬇, basculer ✔ ou supprimer 🗑 :</p>
-  <ul>
-    <li v-for="(t, idx) in taches" :key="'test-' + t.id">
-      <span :style="{ textDecoration: t.terminee ? 'line-through' : 'none' }">
-        {{ t.libelle }}
-      </span>
-
-      <button @click="monter(t.id)" :disabled="idx === 0">⬆</button>
-      <button @click="descendre(t.id)" :disabled="idx === taches.length - 1">⬇</button>
-      <button @click="basculerTerminee(t.id)">✔</button>
-      <button @click="supprimerTache(t.id)">🗑</button>
-    </li>
-  </ul>
 </template>
 
 <script setup>
@@ -68,7 +45,6 @@ import { ref, reactive } from 'vue'
 // Données réactives
 // -----------------------------------------------------
 const taches = reactive([])
-
 const nouvelleTache = ref('')
 const triCritere = ref('manuel')
 const prochainId = ref(1)
@@ -92,10 +68,7 @@ const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
 if (idStockee) {
   prochainId.value = parseInt(idStockee)
 } else {
-  // Définition auto si pas encore stocké
-  prochainId.value = taches.length > 0
-    ? Math.max(...taches.map(t => t.id)) + 1
-    : 1
+  prochainId.value = taches.length > 0 ? Math.max(...taches.map(t => t.id)) + 1 : 1
 }
 
 // -----------------------------------------------------
@@ -122,8 +95,7 @@ function ajouterTache() {
   prochainId.value++
   nouvelleTache.value = ''
 
-  // Tri visuel seulement
-  appliquerTri()
+  appliquerTri() // tri visuel seulement
   sauvegarder()
 }
 
@@ -150,13 +122,11 @@ function supprimerTache(id) {
 // -----------------------------------------------------
 function monter(id) {
   if (triCritere.value !== 'manuel') return
-
   const index = taches.findIndex(t => t.id === id)
   if (index > 0) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index - 1].ordre
     taches[index - 1].ordre = tmp
-
     appliquerTri()
     sauvegarder()
   }
@@ -167,13 +137,11 @@ function monter(id) {
 // -----------------------------------------------------
 function descendre(id) {
   if (triCritere.value !== 'manuel') return
-
   const index = taches.findIndex(t => t.id === id)
   if (index < taches.length - 1) {
     const tmp = taches[index].ordre
     taches[index].ordre = taches[index + 1].ordre
     taches[index + 1].ordre = tmp
-
     appliquerTri()
     sauvegarder()
   }
@@ -187,24 +155,17 @@ function appliquerTri() {
     case 'manuel':
       taches.sort((a, b) => a.ordre - b.ordre)
       break
-
     case 'creation':
       taches.sort((a, b) => a.id - b.id)
       break
-
     case 'libelleAsc':
       taches.sort((a, b) => a.libelle.localeCompare(b.libelle))
       break
-
     case 'libelleDesc':
       taches.sort((a, b) => b.libelle.localeCompare(a.libelle))
       break
-
     case 'terminee':
-      taches.sort((a, b) =>
-        (a.terminee - b.terminee) ||
-        a.libelle.localeCompare(b.libelle)
-      )
+      taches.sort((a, b) => (a.terminee - b.terminee) || a.libelle.localeCompare(b.libelle))
       break
   }
 }
