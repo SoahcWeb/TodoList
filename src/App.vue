@@ -2,8 +2,7 @@
   <h2>Exo Synthèse</h2>
 
   <!-- Formulaire d'ajout -->
-  <input v-model="nouvelleTache" placeholder="Nouvelle tâche">
-  <button @click="ajouterTache" :disabled="!nouvelleTache">Ajouter</button>
+  <TodoForm @demanderAjoutTache="ajouterTache" />
 
   <!-- Menu de tri -->
   <select v-model="triCritere">
@@ -13,39 +12,38 @@
     <option value="libelleDesc">Libellé Z→A</option>
     <option value="terminee">Non terminées d'abord</option>
   </select>
-  <button @click="appliquerTri">Appliquer</button>
 
   <p>Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"</p>
 
   <!-- Compteurs -->
-  <p>Total des tâches : {{ taches.length }}</p>
-  <p>Tâches terminées : {{ taches.filter(t => t.terminee).length }}</p>
+  <p>Total des tâches : {{ nombreTotalTaches }}</p>
+  <p>Tâches terminées : {{ nombreTachesTerminees }}</p>
 
   <!-- Rendu conditionnel -->
-  <ul v-if="taches.length > 0">
-    <li v-for="(tache, index) in taches" :key="tache.id">
-      <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
-
-      <!-- Boutons réorganisation -->
-      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel' || index === 0">⬆</button>
-      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel' || index === taches.length - 1">⬇</button>
-
-      <!-- Actions -->
-      <button @click="basculerTerminee(tache.id)">✔</button>
-      <button @click="supprimerTache(tache.id)">🗑 Supprimer</button>
-    </li>
-  </ul>
+  <TodoList
+    v-if="aDesTaches"
+    :taches="tachesTriees"
+    @demanderSuppression="supprimerTache"
+    @demanderChangementStatut="basculerTerminee"
+    @demanderMonter="monter"
+    @demanderDescendre="descendre"
+  />
   <p v-else>Aucune tâche à afficher</p>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import TodoForm from './components/TodoForm.vue'
+import TodoList from './components/TodoList.vue'
+
+import { useTodolistLocalStorage } from './composables/useTodolistLocalStorage.js'
+import { useTodolistStats } from './composables/useTodolistStats.js'
+import { useTodolistTri } from './composables/useTodolistTri.js'
 
 // -----------------------------------------------------
 // Données réactives
 // -----------------------------------------------------
 const taches = reactive([])
-const nouvelleTache = ref('')
 const triCritere = ref('manuel')
 const prochainId = ref(1)
 
@@ -56,118 +54,68 @@ const CLE_LOCALSTORAGE_TACHES = 'todolist:taches'
 const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
 // -----------------------------------------------------
-// Initialisation depuis LocalStorage
+// Utilisation des composables
 // -----------------------------------------------------
-const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
-if (tachesStockees) {
-  const parsed = JSON.parse(tachesStockees)
-  taches.push(...parsed)
-}
+useTodolistLocalStorage(taches, prochainId, {
+  cleTaches: CLE_LOCALSTORAGE_TACHES,
+  cleProchainId: CLE_LOCALSTORAGE_PROCHAIN_ID
+})
 
-const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
-if (idStockee) {
-  prochainId.value = parseInt(idStockee)
-} else {
-  prochainId.value = taches.length > 0 ? Math.max(...taches.map(t => t.id)) + 1 : 1
-}
+const { nombreTotalTaches, nombreTachesTerminees, aDesTaches } = useTodolistStats(taches)
+const { tachesTriees, peutUtiliserTriManuel } = useTodolistTri(taches, triCritere)
 
 // -----------------------------------------------------
-// Sauvegarde
+// Fonctions métier
 // -----------------------------------------------------
-function sauvegarder() {
-  localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(taches))
-  localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, prochainId.value)
-}
-
-// -----------------------------------------------------
-// Ajouter une tâche
-// -----------------------------------------------------
-function ajouterTache() {
-  if (!nouvelleTache.value.trim()) return
+function ajouterTache(libelle) {
+  if (!libelle.trim()) return
 
   taches.push({
     id: prochainId.value,
-    libelle: nouvelleTache.value.trim(),
+    libelle: libelle.trim(),
     terminee: false,
     ordre: prochainId.value,
   })
 
   prochainId.value++
-  nouvelleTache.value = ''
-
-  appliquerTri() // tri visuel seulement
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Basculer terminé/non terminé
-// -----------------------------------------------------
 function basculerTerminee(id) {
   const t = taches.find(t => t.id === id)
   if (t) t.terminee = !t.terminee
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Supprimer une tâche
-// -----------------------------------------------------
 function supprimerTache(id) {
   const index = taches.findIndex(t => t.id === id)
   if (index !== -1) taches.splice(index, 1)
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Monter une tâche (tri manuel uniquement)
-// -----------------------------------------------------
 function monter(id) {
-  if (triCritere.value !== 'manuel') return
-  const index = taches.findIndex(t => t.id === id)
-  if (index > 0) {
-    const tmp = taches[index].ordre
-    taches[index].ordre = taches[index - 1].ordre
-    taches[index - 1].ordre = tmp
-    appliquerTri()
-    sauvegarder()
-  }
+  if (!peutUtiliserTriManuel.value) return
+
+  const index = tachesTriees.value.findIndex(t => t.id === id)
+  if (index <= 0) return
+
+  const courant = tachesTriees.value[index]
+  const auDessus = tachesTriees.value[index - 1]
+
+  const tmp = courant.ordre
+  courant.ordre = auDessus.ordre
+  auDessus.ordre = tmp
 }
 
-// -----------------------------------------------------
-// Descendre une tâche (tri manuel uniquement)
-// -----------------------------------------------------
 function descendre(id) {
-  if (triCritere.value !== 'manuel') return
-  const index = taches.findIndex(t => t.id === id)
-  if (index < taches.length - 1) {
-    const tmp = taches[index].ordre
-    taches[index].ordre = taches[index + 1].ordre
-    taches[index + 1].ordre = tmp
-    appliquerTri()
-    sauvegarder()
-  }
-}
+  if (!peutUtiliserTriManuel.value) return
 
-// -----------------------------------------------------
-// TRIS — Jour 7
-// -----------------------------------------------------
-function appliquerTri() {
-  switch (triCritere.value) {
-    case 'manuel':
-      taches.sort((a, b) => a.ordre - b.ordre)
-      break
-    case 'creation':
-      taches.sort((a, b) => a.id - b.id)
-      break
-    case 'libelleAsc':
-      taches.sort((a, b) => a.libelle.localeCompare(b.libelle))
-      break
-    case 'libelleDesc':
-      taches.sort((a, b) => b.libelle.localeCompare(a.libelle))
-      break
-    case 'terminee':
-      taches.sort((a, b) => (a.terminee - b.terminee) || a.libelle.localeCompare(b.libelle))
-      break
-  }
+  const index = tachesTriees.value.findIndex(t => t.id === id)
+  if (index >= tachesTriees.value.length - 1) return
+
+  const courant = tachesTriees.value[index]
+  const auDessous = tachesTriees.value[index + 1]
+
+  const tmp = courant.ordre
+  courant.ordre = auDessous.ordre
+  auDessous.ordre = tmp
 }
 </script>
 
