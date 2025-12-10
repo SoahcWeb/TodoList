@@ -21,7 +21,7 @@
 
           <!-- Logout -->
           <div class="flex flex-col items-center cursor-pointer" @click="$emit('logout')">
-            <img src="/images/icons/unlock.png"
+            <img src="/images/Icons/unlock.png"
               class="w-[105px] h-[105px] rounded-xl border border-[#0F0F2F]/50
                      bg-[#0F0F2F]/80 transition-all duration-300
                      hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
@@ -31,7 +31,7 @@
 
           <!-- Retour -->
           <div class="flex flex-col items-center cursor-pointer" @click="$emit('back')">
-            <img src="/images/icons/retour.png"
+            <img src="/images/Icons/retour.png"
               class="w-[105px] h-[105px] rounded-xl border border-[#0F0F2F]/50
                      bg-[#0F0F2F]/80 transition-all duration-300
                      hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
@@ -76,7 +76,7 @@
     </transition>
 
     <!-- CONTENT -->
-    <main class="flex-1 p-6 overflow-y-auto">
+    <main class="flex-1 p-6 overflow-hidden">
       <slot />
     </main>
 
