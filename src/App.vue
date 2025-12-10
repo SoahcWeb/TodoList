@@ -2,7 +2,7 @@
   <h2>Exo Synthèse</h2>
 
   <!-- Formulaire d'ajout -->
-  <input v-model="nouvelleTache" placeholder="Nouvelle tâche">
+  <input v-model="nouvelleTache" placeholder="Nouvelle tâche" />
   <button @click="ajouterTache" :disabled="!nouvelleTache">Ajouter</button>
 
   <!-- Menu de tri -->
@@ -13,22 +13,21 @@
     <option value="libelleDesc">Libellé Z→A</option>
     <option value="terminee">Non terminées d'abord</option>
   </select>
-  <button @click="appliquerTri">Appliquer</button>
 
   <p>Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"</p>
 
   <!-- Compteurs -->
-  <p>Total des tâches : {{ taches.length }}</p>
-  <p>Tâches terminées : {{ taches.filter(t => t.terminee).length }}</p>
+  <p>Total des tâches : {{ nombreTotalTaches }}</p>
+  <p>Tâches terminées : {{ nombreTachesTerminees }}</p>
 
   <!-- Rendu conditionnel -->
-  <ul v-if="taches.length > 0">
-    <li v-for="(tache, index) in taches" :key="tache.id">
+  <ul v-if="aDesTaches">
+    <li v-for="(tache, index) in tachesTriees" :key="tache.id">
       <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
 
       <!-- Boutons réorganisation -->
-      <button @click="monter(tache.id)" :disabled="triCritere !== 'manuel' || index === 0">⬆</button>
-      <button @click="descendre(tache.id)" :disabled="triCritere !== 'manuel' || index === taches.length - 1">⬇</button>
+      <button @click="monter(tache.id)" :disabled="!peutUtiliserTriManuel || index === 0">⬆</button>
+      <button @click="descendre(tache.id)" :disabled="!peutUtiliserTriManuel || index === tachesTriees.length - 1">⬇</button>
 
       <!-- Actions -->
       <button @click="basculerTerminee(tache.id)">✔</button>
@@ -39,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 
 // -----------------------------------------------------
 // Données réactives
@@ -72,15 +71,59 @@ if (idStockee) {
 }
 
 // -----------------------------------------------------
-// Sauvegarde
+// WATCHERS (Sauvegarde centralisée)
 // -----------------------------------------------------
-function sauvegarder() {
-  localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(taches))
-  localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, prochainId.value)
-}
+watch(
+  taches,
+  (nv) => {
+    localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(nv))
+  },
+  { deep: true }
+)
+
+watch(prochainId, (nv) => {
+  localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, String(nv))
+})
 
 // -----------------------------------------------------
-// Ajouter une tâche
+// Propriétés calculées
+// -----------------------------------------------------
+const nombreTotalTaches = computed(() => taches.length)
+
+const nombreTachesTerminees = computed(() =>
+  taches.filter(t => t.terminee).length
+)
+
+const aDesTaches = computed(() => taches.length > 0)
+
+const peutUtiliserTriManuel = computed(() => triCritere.value === 'manuel')
+
+const tachesTriees = computed(() => {
+  return taches.toSorted((a, b) => {
+    switch (triCritere.value) {
+      case 'creation':
+        return a.id - b.id
+
+      case 'libelleAsc':
+        return a.libelle.localeCompare(b.libelle)
+
+      case 'libelleDesc':
+        return b.libelle.localeCompare(a.libelle)
+
+      case 'terminee':
+        return (a.terminee === b.terminee)
+          ? a.libelle.localeCompare(b.libelle)
+          : (a.terminee ? 1 : -1)
+
+      case 'manuel':
+      default:
+        return a.ordre - b.ordre
+    }
+  })
+})
+
+// -----------------------------------------------------
+// Fonctions métier (sans aucune persistance)
 // -----------------------------------------------------
 function ajouterTache() {
   if (!nouvelleTache.value.trim()) return
@@ -94,80 +137,44 @@ function ajouterTache() {
 
   prochainId.value++
   nouvelleTache.value = ''
-
-  appliquerTri() // tri visuel seulement
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Basculer terminé/non terminé
-// -----------------------------------------------------
 function basculerTerminee(id) {
   const t = taches.find(t => t.id === id)
   if (t) t.terminee = !t.terminee
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Supprimer une tâche
-// -----------------------------------------------------
 function supprimerTache(id) {
   const index = taches.findIndex(t => t.id === id)
   if (index !== -1) taches.splice(index, 1)
-  sauvegarder()
 }
 
-// -----------------------------------------------------
-// Monter une tâche (tri manuel uniquement)
-// -----------------------------------------------------
 function monter(id) {
-  if (triCritere.value !== 'manuel') return
-  const index = taches.findIndex(t => t.id === id)
-  if (index > 0) {
-    const tmp = taches[index].ordre
-    taches[index].ordre = taches[index - 1].ordre
-    taches[index - 1].ordre = tmp
-    appliquerTri()
-    sauvegarder()
-  }
+  if (!peutUtiliserTriManuel.value) return
+
+  const index = tachesTriees.value.findIndex(t => t.id === id)
+  if (index <= 0) return
+
+  const courant = tachesTriees.value[index]
+  const auDessus = tachesTriees.value[index - 1]
+
+  const tmp = courant.ordre
+  courant.ordre = auDessus.ordre
+  auDessus.ordre = tmp
 }
 
-// -----------------------------------------------------
-// Descendre une tâche (tri manuel uniquement)
-// -----------------------------------------------------
 function descendre(id) {
-  if (triCritere.value !== 'manuel') return
-  const index = taches.findIndex(t => t.id === id)
-  if (index < taches.length - 1) {
-    const tmp = taches[index].ordre
-    taches[index].ordre = taches[index + 1].ordre
-    taches[index + 1].ordre = tmp
-    appliquerTri()
-    sauvegarder()
-  }
-}
+  if (!peutUtiliserTriManuel.value) return
 
-// -----------------------------------------------------
-// TRIS — Jour 7
-// -----------------------------------------------------
-function appliquerTri() {
-  switch (triCritere.value) {
-    case 'manuel':
-      taches.sort((a, b) => a.ordre - b.ordre)
-      break
-    case 'creation':
-      taches.sort((a, b) => a.id - b.id)
-      break
-    case 'libelleAsc':
-      taches.sort((a, b) => a.libelle.localeCompare(b.libelle))
-      break
-    case 'libelleDesc':
-      taches.sort((a, b) => b.libelle.localeCompare(a.libelle))
-      break
-    case 'terminee':
-      taches.sort((a, b) => (a.terminee - b.terminee) || a.libelle.localeCompare(b.libelle))
-      break
-  }
+  const index = tachesTriees.value.findIndex(t => t.id === id)
+  if (index >= tachesTriees.value.length - 1) return
+
+  const courant = tachesTriees.value[index]
+  const auDessous = tachesTriees.value[index + 1]
+
+  const tmp = courant.ordre
+  courant.ordre = auDessous.ordre
+  auDessous.ordre = tmp
 }
 </script>
 
