@@ -2,8 +2,7 @@
   <h2>Exo Synthèse</h2>
 
   <!-- Formulaire d'ajout -->
-  <input v-model="nouvelleTache" placeholder="Nouvelle tâche" />
-  <button @click="ajouterTache" :disabled="!nouvelleTache">Ajouter</button>
+  <TodoForm @demanderAjoutTache="ajouterTache" />
 
   <!-- Menu de tri -->
   <select v-model="triCritere">
@@ -20,31 +19,25 @@
   <p>Total des tâches : {{ nombreTotalTaches }}</p>
   <p>Tâches terminées : {{ nombreTachesTerminees }}</p>
 
-  <!-- Rendu conditionnel -->
-  <ul v-if="aDesTaches">
-    <li v-for="(tache, index) in tachesTriees" :key="tache.id">
-      <span :class="{ terminee: tache.terminee }">{{ tache.libelle }}</span>
-
-      <!-- Boutons réorganisation -->
-      <button @click="monter(tache.id)" :disabled="!peutUtiliserTriManuel || index === 0">⬆</button>
-      <button @click="descendre(tache.id)" :disabled="!peutUtiliserTriManuel || index === tachesTriees.length - 1">⬇</button>
-
-      <!-- Actions -->
-      <button @click="basculerTerminee(tache.id)">✔</button>
-      <button @click="supprimerTache(tache.id)">🗑 Supprimer</button>
-    </li>
-  </ul>
-  <p v-else>Aucune tâche à afficher</p>
+  <!-- Liste des tâches -->
+  <TodoList
+    :taches="tachesTriees"
+    @demanderSuppression="supprimerTache"
+    @demanderChangementStatut="basculerTerminee"
+    @demanderMonter="monter"
+    @demanderDescendre="descendre"
+  />
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import TodoForm from './components/TodoForm.vue'
+import TodoList from './components/TodoList.vue'
 
 // -----------------------------------------------------
 // Données réactives
 // -----------------------------------------------------
 const taches = reactive([])
-const nouvelleTache = ref('')
 const triCritere = ref('manuel')
 const prochainId = ref(1)
 
@@ -59,8 +52,7 @@ const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 // -----------------------------------------------------
 const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
 if (tachesStockees) {
-  const parsed = JSON.parse(tachesStockees)
-  taches.push(...parsed)
+  taches.push(...JSON.parse(tachesStockees))
 }
 
 const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
@@ -71,15 +63,11 @@ if (idStockee) {
 }
 
 // -----------------------------------------------------
-// WATCHERS (Sauvegarde centralisée)
+// Observers pour sauvegarde automatique
 // -----------------------------------------------------
-watch(
-  taches,
-  (nv) => {
-    localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(nv))
-  },
-  { deep: true }
-)
+watch(taches, (nv) => {
+  localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(nv))
+}, { deep: true })
 
 watch(prochainId, (nv) => {
   localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, String(nv))
@@ -89,54 +77,38 @@ watch(prochainId, (nv) => {
 // Propriétés calculées
 // -----------------------------------------------------
 const nombreTotalTaches = computed(() => taches.length)
-
-const nombreTachesTerminees = computed(() =>
-  taches.filter(t => t.terminee).length
-)
-
-const aDesTaches = computed(() => taches.length > 0)
+const nombreTachesTerminees = computed(() => taches.filter(t => t.terminee).length)
 
 const peutUtiliserTriManuel = computed(() => triCritere.value === 'manuel')
 
 const tachesTriees = computed(() => {
   return taches.toSorted((a, b) => {
     switch (triCritere.value) {
-      case 'creation':
-        return a.id - b.id
-
-      case 'libelleAsc':
-        return a.libelle.localeCompare(b.libelle)
-
-      case 'libelleDesc':
-        return b.libelle.localeCompare(a.libelle)
-
+      case 'creation': return a.id - b.id
+      case 'libelleAsc': return a.libelle.localeCompare(b.libelle)
+      case 'libelleDesc': return b.libelle.localeCompare(a.libelle)
       case 'terminee':
         return (a.terminee === b.terminee)
           ? a.libelle.localeCompare(b.libelle)
           : (a.terminee ? 1 : -1)
-
       case 'manuel':
-      default:
-        return a.ordre - b.ordre
+      default: return a.ordre - b.ordre
     }
   })
 })
 
 // -----------------------------------------------------
-// Fonctions métier (sans aucune persistance)
+// Fonctions métier
 // -----------------------------------------------------
-function ajouterTache() {
-  if (!nouvelleTache.value.trim()) return
-
+function ajouterTache(libelle) {
+  if (!libelle.trim()) return
   taches.push({
     id: prochainId.value,
-    libelle: nouvelleTache.value.trim(),
+    libelle: libelle.trim(),
     terminee: false,
-    ordre: prochainId.value,
+    ordre: prochainId.value
   })
-
   prochainId.value++
-  nouvelleTache.value = ''
 }
 
 function basculerTerminee(id) {
@@ -151,13 +123,10 @@ function supprimerTache(id) {
 
 function monter(id) {
   if (!peutUtiliserTriManuel.value) return
-
   const index = tachesTriees.value.findIndex(t => t.id === id)
   if (index <= 0) return
-
   const courant = tachesTriees.value[index]
   const auDessus = tachesTriees.value[index - 1]
-
   const tmp = courant.ordre
   courant.ordre = auDessus.ordre
   auDessus.ordre = tmp
@@ -165,13 +134,10 @@ function monter(id) {
 
 function descendre(id) {
   if (!peutUtiliserTriManuel.value) return
-
   const index = tachesTriees.value.findIndex(t => t.id === id)
   if (index >= tachesTriees.value.length - 1) return
-
   const courant = tachesTriees.value[index]
   const auDessous = tachesTriees.value[index + 1]
-
   const tmp = courant.ordre
   courant.ordre = auDessous.ordre
   auDessous.ordre = tmp
