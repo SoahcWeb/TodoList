@@ -14,7 +14,7 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <ul>
+  <ul class="space-y-2">
     <TodoItem
       v-for="(tache, index) in taches"
       :key="tache.id"
@@ -28,6 +28,16 @@ const emit = defineEmits([
       @demanderChangementStatut="emit('demanderChangementStatut', $event)"
       @demanderMonter="emit('demanderMonter', $event)"
       @demanderDescendre="emit('demanderDescendre', $event)"
+      class="flex items-center justify-between p-3 bg-[#0F0F2F]/50 rounded-xl border border-[#0F0F2F]/30 shadow-md"
     />
   </ul>
 </template>
+
+<style scoped>
+/* Optionnel : ajuste la scrollabilité si nécessaire */
+ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+</style>
