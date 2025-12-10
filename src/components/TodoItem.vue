@@ -24,18 +24,10 @@ function demanderDescendre() { emit('demanderDescendre', props.id) }
 <template>
   <li>
     <span :class="{ terminee: props.terminee }">{{ props.libelle }}</span>
-
     <button @click="demanderChangementStatut">✔</button>
     <button @click="demanderSuppression">🗑</button>
-
-    <button 
-      v-if="peutMonterDescendre" 
-      @click="demanderMonter" 
-      :disabled="estPremiere">⬆</button>
-    <button 
-      v-if="peutMonterDescendre" 
-      @click="demanderDescendre" 
-      :disabled="estDerniere">⬇</button>
+    <button v-if="peutMonterDescendre" @click="demanderMonter" :disabled="estPremiere">⬆</button>
+    <button v-if="peutMonterDescendre" @click="demanderDescendre" :disabled="estDerniere">⬇</button>
   </li>
 </template>
 

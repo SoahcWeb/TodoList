@@ -19,20 +19,26 @@
   <p>Total des tâches : {{ nombreTotalTaches }}</p>
   <p>Tâches terminées : {{ nombreTachesTerminees }}</p>
 
-  <!-- Liste des tâches -->
+  <!-- Rendu conditionnel -->
   <TodoList
+    v-if="aDesTaches"
     :taches="tachesTriees"
     @demanderSuppression="supprimerTache"
     @demanderChangementStatut="basculerTerminee"
     @demanderMonter="monter"
     @demanderDescendre="descendre"
   />
+  <p v-else>Aucune tâche à afficher</p>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import TodoForm from './components/TodoForm.vue'
 import TodoList from './components/TodoList.vue'
+
+import { useTodolistLocalStorage } from './composables/useTodolistLocalStorage.js'
+import { useTodolistStats } from './composables/useTodolistStats.js'
+import { useTodolistTri } from './composables/useTodolistTri.js'
 
 // -----------------------------------------------------
 // Données réactives
@@ -48,66 +54,29 @@ const CLE_LOCALSTORAGE_TACHES = 'todolist:taches'
 const CLE_LOCALSTORAGE_PROCHAIN_ID = 'todolist:prochainId'
 
 // -----------------------------------------------------
-// Initialisation depuis LocalStorage
+// Utilisation des composables
 // -----------------------------------------------------
-const tachesStockees = localStorage.getItem(CLE_LOCALSTORAGE_TACHES)
-if (tachesStockees) {
-  taches.push(...JSON.parse(tachesStockees))
-}
-
-const idStockee = localStorage.getItem(CLE_LOCALSTORAGE_PROCHAIN_ID)
-if (idStockee) {
-  prochainId.value = parseInt(idStockee)
-} else {
-  prochainId.value = taches.length > 0 ? Math.max(...taches.map(t => t.id)) + 1 : 1
-}
-
-// -----------------------------------------------------
-// Observers pour sauvegarde automatique
-// -----------------------------------------------------
-watch(taches, (nv) => {
-  localStorage.setItem(CLE_LOCALSTORAGE_TACHES, JSON.stringify(nv))
-}, { deep: true })
-
-watch(prochainId, (nv) => {
-  localStorage.setItem(CLE_LOCALSTORAGE_PROCHAIN_ID, String(nv))
+useTodolistLocalStorage(taches, prochainId, {
+  cleTaches: CLE_LOCALSTORAGE_TACHES,
+  cleProchainId: CLE_LOCALSTORAGE_PROCHAIN_ID
 })
 
-// -----------------------------------------------------
-// Propriétés calculées
-// -----------------------------------------------------
-const nombreTotalTaches = computed(() => taches.length)
-const nombreTachesTerminees = computed(() => taches.filter(t => t.terminee).length)
-
-const peutUtiliserTriManuel = computed(() => triCritere.value === 'manuel')
-
-const tachesTriees = computed(() => {
-  return taches.toSorted((a, b) => {
-    switch (triCritere.value) {
-      case 'creation': return a.id - b.id
-      case 'libelleAsc': return a.libelle.localeCompare(b.libelle)
-      case 'libelleDesc': return b.libelle.localeCompare(a.libelle)
-      case 'terminee':
-        return (a.terminee === b.terminee)
-          ? a.libelle.localeCompare(b.libelle)
-          : (a.terminee ? 1 : -1)
-      case 'manuel':
-      default: return a.ordre - b.ordre
-    }
-  })
-})
+const { nombreTotalTaches, nombreTachesTerminees, aDesTaches } = useTodolistStats(taches)
+const { tachesTriees, peutUtiliserTriManuel } = useTodolistTri(taches, triCritere)
 
 // -----------------------------------------------------
 // Fonctions métier
 // -----------------------------------------------------
 function ajouterTache(libelle) {
   if (!libelle.trim()) return
+
   taches.push({
     id: prochainId.value,
     libelle: libelle.trim(),
     terminee: false,
-    ordre: prochainId.value
+    ordre: prochainId.value,
   })
+
   prochainId.value++
 }
 
@@ -123,10 +92,13 @@ function supprimerTache(id) {
 
 function monter(id) {
   if (!peutUtiliserTriManuel.value) return
+
   const index = tachesTriees.value.findIndex(t => t.id === id)
   if (index <= 0) return
+
   const courant = tachesTriees.value[index]
   const auDessus = tachesTriees.value[index - 1]
+
   const tmp = courant.ordre
   courant.ordre = auDessus.ordre
   auDessus.ordre = tmp
@@ -134,10 +106,13 @@ function monter(id) {
 
 function descendre(id) {
   if (!peutUtiliserTriManuel.value) return
+
   const index = tachesTriees.value.findIndex(t => t.id === id)
   if (index >= tachesTriees.value.length - 1) return
+
   const courant = tachesTriees.value[index]
   const auDessous = tachesTriees.value[index + 1]
+
   const tmp = courant.ordre
   courant.ordre = auDessous.ordre
   auDessous.ordre = tmp
