@@ -2,17 +2,14 @@
 import AuthenticatedLayout from './Layouts/AuthenticatedLayout.vue'
 import TodoList from './components/TodoList.vue'
 import TodoForm from './components/TodoForm.vue'
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 
 // -----------------------------------------------------
 // Données réactives
 // -----------------------------------------------------
-const taches = reactive([
-  { id: 1, libelle: 'Exemple 1', terminee: false, ordre: 1 },
-  { id: 2, libelle: 'Exemple 2', terminee: true, ordre: 2 },
-])
+const taches = reactive([]) // on initialise vide, chargement depuis localStorage
 const triCritere = ref('manuel')
-const prochainId = ref(3)
+const prochainId = ref(1)
 
 // -----------------------------------------------------
 // Fonctions métier
@@ -77,6 +74,10 @@ const tachesTriees = computed(() => {
 const aDesTaches = computed(() => taches.length > 0)
 const nombreTotalTaches = computed(() => taches.length)
 const nombreTachesTerminees = computed(() => taches.filter(t=>t.terminee).length)
+const pourcentageTerminees = computed(() => {
+  if (taches.length === 0) return 0
+  return Math.round((nombreTachesTerminees.value / nombreTotalTaches.value) * 100)
+})
 
 // -----------------------------------------------------
 // Date du jour
@@ -100,9 +101,28 @@ function updateDateToMidnight() {
   }, msJusquaMinuit)
 }
 
+// -----------------------------------------------------
+// Persistance dans le navigateur (localStorage)
+// -----------------------------------------------------
+const STORAGE_KEY = 'todolist-taches'
+
 onMounted(() => {
+  // Charger depuis localStorage
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    parsed.forEach(t => taches.push(t))
+    if (taches.length > 0) {
+      prochainId.value = Math.max(...taches.map(t => t.id)) + 1
+    }
+  }
   updateDateToMidnight()
 })
+
+// Sauvegarder automatiquement à chaque modification
+watch(taches, (newVal) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
+}, { deep: true })
 </script>
 
 <template>
@@ -129,12 +149,9 @@ onMounted(() => {
 
         <!-- Carte gauche : Formulaire + barre de tri 40% -->
         <div class="flex-[0.4] p-6 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md flex flex-col">
-
-          <!-- Formulaire d'ajout -->
           <h3 class="text-xl font-semibold text-[#52c5ff] mt-6 mb-4 text-center">Ajouter une tâche</h3>
           <TodoForm @demanderAjoutTache="ajouterTache" />
 
-          <!-- Menu de tri -->
           <div class="mt-4">
             <select v-model="triCritere" class="w-full p-2 rounded bg-[#1a1a1a] text-[#E0E6F0] border border-[#0F0F2F]">
               <option value="manuel">Ordre personnalisé</option>
@@ -147,31 +164,29 @@ onMounted(() => {
               Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"
             </p>
           </div>
-
         </div>
 
         <!-- Carte droite : Liste des tâches + compteurs 60% -->
         <div class="flex-[0.6] p-6 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md flex flex-col">
 
-          <!-- Titre -->
           <h3 class="text-xl font-semibold text-[#52c5ff] mt-6 mb-4 text-center">
             Voici vos tâches à réaliser pour le <span class="font-bold text-[#E0E6F0]">{{ dateDuJour }}</span>
           </h3>
 
-          <!-- Séparateur 1 -->
           <div class="w-full h-2 mt-6 mb-6 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
 
-          <!-- Compteurs centrés avec même marge que le titre -->
+          <!-- Compteurs avec pourcentage -->
           <div class="flex flex-col items-center space-y-2 mt-6 mb-6">
-            <p class="text-[#E0E6F0] text-lg font-bold">Total des tâches : {{ nombreTotalTaches }}</p>
-            <p class="text-[#f8786f] text-lg font-bold">Tâches terminées : {{ nombreTachesTerminees }}</p>
+            <p class="text-[#52c5ff] text-lg font-bold">Total des tâches : {{ nombreTotalTaches }}</p>
+            <p class="text-[#f8786f] text-lg font-bold">
+              Vous avez réalisé {{ pourcentageTerminees }}% de vos tâches du jour
+            </p>
           </div>
 
-          <!-- Séparateur 2 -->
           <div class="w-full h-2 mt-6 mb-6 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
 
-          <!-- Liste des tâches avec espacement homogène -->
-          <div class="flex-1 mt-6 overflow-y-auto">
+          <!-- Liste centrée -->
+          <div class="flex-1 mt-6 overflow-y-auto flex flex-col items-center">
             <TodoList
               v-if="aDesTaches"
               :taches="tachesTriees"

@@ -22,74 +22,100 @@ function demanderDescendre() { emit('demanderDescendre', props.id) }
 </script>
 
 <template>
-  <li class="flex items-center gap-1 p-2 rounded-xl bg-[#011c2f]">
-    <span :class="props.terminee ? 'terminee' : 'aFaire'">{{ props.libelle }}</span>
+  <li class="todo-block flex items-center justify-between p-3 rounded-xl border border-[#0F0F2F]/50 mb-2">
+    <span 
+      :class="{'terminee': props.terminee, 'encours': !props.terminee}" 
+      class="task-text"
+    >
+      {{ props.libelle }}
+    </span>
 
-    <div class="flex ml-auto"> <!-- Groupe de boutons collés alignés à droite -->
+    <div class="flex gap-1">
       <!-- Bouton valider -->
-      <button @click="demanderChangementStatut"
-        class="w-[52px] h-[52px] rounded-xl border border-[#0F0F2F]/50
-               bg-[#0F0F2F]/80 transition-all duration-300
-               hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
-               hover:scale-105 flex items-center justify-center m-0 p-0"
-      >
+      <button @click="demanderChangementStatut" 
+        class="btn">
         <img 
           :src="props.terminee ? '/images/Icons/valideron.png' : '/images/Icons/valider.png'" 
           alt="Valider" 
-          title="Valider"
-          class="w-4/5 h-4/5"
+          title="Valider" 
+          class="icon"
         />
       </button>
 
       <!-- Bouton poubelle -->
-      <button @click="demanderSuppression"
-        class="w-[52px] h-[52px] rounded-xl border border-[#0F0F2F]/50
-               bg-[#0F0F2F]/80 transition-all duration-300
-               hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
-               hover:scale-105 flex items-center justify-center m-0 p-0"
-      >
-        <img src="/images/Icons/poubelle.png" alt="Supprimer" title="Supprimer" class="w-4/5 h-4/5" />
+      <button @click="demanderSuppression" class="btn">
+        <img src="/images/Icons/poubelle.png" alt="Supprimer" title="Supprimer" class="icon" />
       </button>
 
       <!-- Bouton monter -->
-      <button v-if="peutMonterDescendre" @click="demanderMonter" :disabled="estPremiere"
-        class="w-[52px] h-[52px] rounded-xl border border-[#0F0F2F]/50
-               bg-[#0F0F2F]/80 transition-all duration-300
-               hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
-               hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed
-               flex items-center justify-center m-0 p-0"
-      >
-        <img 
-          :src="estPremiere ? '/images/Icons/upgris.png' : '/images/Icons/up.png'" 
-          alt="Monter" 
-          title="Monter"
-          class="w-4/5 h-4/5"
-        />
+      <button v-if="peutMonterDescendre" @click="demanderMonter" :disabled="estPremiere" class="btn" >
+        <img :src="estPremiere ? '/images/Icons/upgris.png' : '/images/Icons/up.png'" alt="Monter" title="Monter" class="icon"/>
       </button>
 
       <!-- Bouton descendre -->
-      <button v-if="peutMonterDescendre" @click="demanderDescendre" :disabled="estDerniere"
-        class="w-[52px] h-[52px] rounded-xl border border-[#0F0F2F]/50
-               bg-[#0F0F2F]/80 transition-all duration-300
-               hover:border-[#C96BFF] hover:shadow-[0_0_15px_rgba(201,107,255,0.45)]
-               hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed
-               flex items-center justify-center m-0 p-0"
-      >
-        <img 
-          :src="estDerniere ? '/images/Icons/downgris.png' : '/images/Icons/down.png'" 
-          alt="Descendre" 
-          title="Descendre"
-          class="w-4/5 h-4/5"
-        />
+      <button v-if="peutMonterDescendre" @click="demanderDescendre" :disabled="estDerniere" class="btn" >
+        <img :src="estDerniere ? '/images/Icons/downgris.png' : '/images/Icons/down.png'" alt="Descendre" title="Descendre" class="icon"/>
       </button>
     </div>
-
   </li>
 </template>
 
 <style scoped>
-.aFaire { color: #52c5ff; }
-.terminee { color: #f8786f; text-decoration: line-through; }
-li { display: flex; align-items: center; gap: 0.25rem; } /* texte et groupe de boutons rapprochés */
-button img { display: block; }
+.todo-block {
+  width: 100%;
+  max-width: 600px;
+  min-width: 400px;
+  background-color: #011c2f; /* fond du bloc complet */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.task-text {
+  flex: 1;
+  word-break: break-word; /* texte long passe à la ligne */
+  margin-right: 8px;
+}
+
+.encours {
+  color: #52c5ff;
+}
+
+.terminee {
+  color: #f8786f;
+  text-decoration: line-through;
+}
+
+/* Boutons */
+.btn {
+  width: 52px;
+  height: 52px;
+  background-color: #0F0F2F;
+  border: 1px solid #0F0F2F;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  border-color: #C96BFF;
+  box-shadow: 0 0 15px rgba(201, 107, 255, 0.45);
+  transform: scale(1.05);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon {
+  width: 80%; /* 4/5 de la taille du bouton */
+  height: 80%;
+  display: block;
+}
 </style>
