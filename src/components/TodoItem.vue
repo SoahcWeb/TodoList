@@ -72,14 +72,16 @@ function demanderDescendre() { emit('demanderDescendre', props.id) }
   flex-wrap: wrap;
 }
 
+/* Texte des tâches */
 .task-text {
   flex: 1;
   word-break: break-word; /* texte long passe à la ligne */
   margin-right: 8px;
 }
 
+/* Couleurs selon statut */
 .encours {
-  color: #52c5ff;
+  color: #E0E6F0;
 }
 
 .terminee {

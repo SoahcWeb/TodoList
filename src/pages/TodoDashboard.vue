@@ -102,37 +102,35 @@ const tachesTriees = computed(() => {
       </div>
     </div>
 
-    <!-- Bloc principal : Formulaire à gauche 40%, Tâches à droite 60% -->
+    <!-- Bloc principal : Formulaire à gauche 60%, Tâches à droite 40% -->
     <div class="flex-1 flex gap-6 overflow-hidden">
 
       <!-- Carte Formulaire (60%) -->
-      <div class="flex-[0.6] flex flex-col dashboard-scroll p-4 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md">
+      <div class="flex-[0.6] flex flex-col p-4 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md">
         <h3 class="text-xl font-semibold text-[#52c5ff] mb-4 text-center">Ajouter une tâche</h3>
-        <div class="flex-1 overflow-y-auto scroll-content">
-          <TodoForm @demanderAjoutTache="ajouterTache" />
-
-          <div class="mt-6">
-            <label class="text-[#52c5ff] font-semibold">Filtrer / Trier :</label>
-            <select v-model="triCritere" class="mt-2 w-full p-2 rounded bg-[#1A1A1A] text-[#E0E6F0]">
-              <option value="manuel">Ordre personnalisé</option>
-              <option value="creation">Ordre de création</option>
-              <option value="libelleAsc">Libellé A→Z</option>
-              <option value="libelleDesc">Libellé Z→A</option>
-              <option value="terminee">Non terminées d'abord</option>
-            </select>
-            <p class="mt-2 text-sm text-[#E0E6F0]">Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"</p>
-          </div>
+        <TodoForm @demanderAjoutTache="ajouterTache" />
+        <div class="mt-6">
+          <label class="text-[#52c5ff] font-semibold">Filtrer / Trier :</label>
+          <select v-model="triCritere" class="mt-2 w-full p-2 rounded bg-[#1A1A1A] text-[#E0E6F0]">
+            <option value="manuel">Ordre personnalisé</option>
+            <option value="creation">Ordre de création</option>
+            <option value="libelleAsc">A→Z</option>
+            <option value="libelleDesc">Z→A</option>
+            <option value="terminee">Non terminées d'abord</option>
+          </select>
+          <p class="mt-2 text-sm text-[#E0E6F0]">Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"</p>
         </div>
       </div>
 
       <!-- Carte Tâches (40%) -->
-      <div class="flex-[0.4] flex flex-col dashboard-scroll p-4 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md">
+      <div class="flex-[0.4] flex flex-col p-4 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md min-h-0">
         <h3 class="text-xl font-semibold text-[#52c5ff] mb-4 text-center">Vos tâches</h3>
 
-        <p>Total des tâches : {{ nombreTotalTaches }}</p>
-        <p>Tâches terminées : {{ nombreTachesTerminees }}</p>
+        <p class="text-[#E0E6F0]">Total des tâches : {{ nombreTotalTaches }}</p>
+        <p class="text-[#E0E6F0]">Tâches terminées : {{ nombreTachesTerminees }}</p>
 
-        <div class="flex-1 overflow-y-auto scroll-content">
+        <!-- Scroll uniquement sur le contenu de la liste -->
+        <div class="flex-1 overflow-y-auto scrollbar mt-4 min-h-0">
           <TodoList
             v-if="aDesTaches"
             :taches="tachesTriees"
@@ -152,31 +150,23 @@ const tachesTriees = computed(() => {
 
 <style scoped>
 /* Scroll uniquement sur le contenu des cartes */
-.dashboard-scroll {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.scroll-content {
-  flex: 1;
-  overflow-y: auto;
+.scrollbar {
   padding-right: 12px;
   margin-right: -6px;
   scrollbar-width: thin;
   scrollbar-color: #52c5ff rgba(15,15,47,0.8);
 }
 
-.scroll-content::-webkit-scrollbar {
+.scrollbar::-webkit-scrollbar {
   width: 8px;
 }
 
-.scroll-content::-webkit-scrollbar-track {
+.scrollbar::-webkit-scrollbar-track {
   background: rgba(15,15,47,0.8);
   border-radius: 8px;
 }
 
-.scroll-content::-webkit-scrollbar-thumb {
+.scrollbar::-webkit-scrollbar-thumb {
   background-color: #52c5ff;
   border-radius: 8px;
   border: 2px solid rgba(15,15,47,0.8);

@@ -17,7 +17,7 @@
         </div>
 
         <!-- Icônes -->
-        <div class="absolute flex justify-center w-full space-x-4" style="bottom: 11.5%;">
+        <div class="absolute flex justify-center w-full space-x-4" style="bottom: 17.5%;">
 
           <!-- Logout -->
           <div class="flex flex-col items-center cursor-pointer" @click="$emit('logout')">
@@ -66,8 +66,7 @@
           Retour
         </button>
 
-        <button class="flex w-full items-center gap-3 px-3 py-2 text-sm rounded-md text-red-500
-                       hover:bg-red-900/20"
+        <button class="flex items-center w-full gap-3 px-3 py-2 text-sm text-red-500 rounded-md hover:bg-red-900/20"
                 @click="$emit('logout'); mobileOpen = false">
           Logout
         </button>

@@ -12,6 +12,26 @@ const triCritere = ref('manuel')
 const prochainId = ref(1)
 
 // -----------------------------------------------------
+// Dropdown custom
+// -----------------------------------------------------
+const dropdownOptions = [
+  { value: 'manuel', label: 'Ordre personnalisé' },
+  { value: 'creation', label: 'Ordre de création' },
+  { value: 'libelleAsc', label: 'Libellé A→Z' },
+  { value: 'libelleDesc', label: 'Libellé Z→A' },
+  { value: 'terminee', label: "Non terminées d'abord" }
+]
+
+const isDropdownOpen = ref(false)
+function toggleDropdown() {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+function selectOption(option) {
+  triCritere.value = option.value
+  isDropdownOpen.value = false
+}
+
+// -----------------------------------------------------
 // Fonctions métier
 // -----------------------------------------------------
 function ajouterTache(libelle) {
@@ -107,7 +127,6 @@ function updateDateToMidnight() {
 const STORAGE_KEY = 'todolist-taches'
 
 onMounted(() => {
-  // Charger depuis localStorage
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
     const parsed = JSON.parse(saved)
@@ -119,7 +138,6 @@ onMounted(() => {
   updateDateToMidnight()
 })
 
-// Sauvegarder automatiquement à chaque modification
 watch(taches, (newVal) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(newVal))
 }, { deep: true })
@@ -133,51 +151,83 @@ watch(taches, (newVal) => {
       </h2>
     </template>
 
-    <div class="flex flex-col h-screen dashboard-scroll p-4 space-y-6">
+    <div class="flex flex-col h-screen p-4 space-y-6">
 
       <!-- Bloc de présentation -->
-      <div class="relative mb-2 p-4 flex items-center overflow-hidden rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50">
-        <img src="/images/Icons/dashboard.png" alt="Dashboard"
-             class="w-16 h-16 object-contain mr-4" />
-        <p class="text-[#E0E6F0] text-lg sm:text-xl md:text-2xl font-semibold">
-          Bienvenue sur votre tableau de tâches, gardez le contrôle et restez organisé !
-        </p>
+      <div class="relative mb-2 p-2 flex items-center justify-between overflow-hidden rounded-xl bg-[#0F0F2F]/80"
+           style="border: 4px solid; border-image: linear-gradient(to right, #0F0F2F, #0F4F8F, #0F0F2F) 1; min-height: 80px;">
+
+        <div class="flex items-center justify-center flex-1 px-4">
+          <p class="text-[#52c5ff] font-semibold text-center leading-tight text-1xl sm:text-2xl md:text-3xl lg:text-3xl break-words">
+            Nethra LifeDesk
+          </p>
+        </div>
+
+        <img src="/images/Icons/lifedesk.png"
+             alt="LifeDesk"
+             class="w-[80px] h-[80px] object-cover rounded-xl flex-shrink-0 ml-4" />
       </div>
 
       <!-- Grille : Formulaire à gauche 40%, Tâches à droite 60% -->
-      <div class="flex flex-col gap-6 md:flex-row">
+      <div class="flex flex-col flex-1 gap-6 md:flex-row">
 
         <!-- Carte gauche : Formulaire + barre de tri 40% -->
-        <div class="flex-[0.4] p-6 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md flex flex-col">
-          <h3 class="text-xl font-semibold text-[#52c5ff] mt-6 mb-4 text-center">Ajouter une tâche</h3>
-          <TodoForm @demanderAjoutTache="ajouterTache" />
+        <div class="flex-[0.4] p-6 rounded-xl bg-[#0F0F2F]/80 flex flex-col"
+             style="border: 4px solid; border-image: linear-gradient(to right, #0F0F2F, #0F4F8F, #0F0F2F) 1;">
 
-          <div class="mt-4">
-            <select v-model="triCritere" class="w-full p-2 rounded bg-[#1a1a1a] text-[#E0E6F0] border border-[#0F0F2F]">
-              <option value="manuel">Ordre personnalisé</option>
-              <option value="creation">Ordre de création</option>
-              <option value="libelleAsc">Libellé A→Z</option>
-              <option value="libelleDesc">Libellé Z→A</option>
-              <option value="terminee">Non terminées d'abord</option>
-            </select>
-            <p class="text-sm text-[#52c5ff] mt-1">
-              Les flèches ⬆ et ⬇ ne fonctionnent que si le tri est "Ordre personnalisé"
-            </p>
+          <!-- Titre avec image alignée à gauche -->
+          <div class="flex items-center gap-4 mt-6 mb-4">
+            <img src="/images/Icons/todolist.png" alt="icone" class="object-contain w-40 h-40" />
+            <div class="flex flex-col justify-center w-full">
+              <span class="text-4xl font-bold text-[#E0E6F0] leading-tight text-left">Nethra</span>
+              <span class="text-4xl font-bold text-[#E0E6F0] leading-tight text-left">Todo-List</span>
+            </div>
           </div>
+
+          <div class="w-full h-2 my-4 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
+
+          <div class="flex flex-col gap-4 my-4">
+            <TodoForm @demanderAjoutTache="ajouterTache" class="w-full"/>
+          </div>
+
+          <div class="w-full h-2 my-4 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
+
+          <!-- Dropdown custom -->
+          <div class="dropdown-container">
+            <p class="dropdown-label">Les flèches ne fonctionnent que si le tri est en "Ordre personnalisé"</p>
+            <div class="dropdown" @click="toggleDropdown" :class="{ open: isDropdownOpen }">
+              <div class="selected">
+                {{ dropdownOptions.find(o => o.value === triCritere)?.label || "Choisir..." }}
+              </div>
+              <div class="arrow">▲</div>
+              <ul v-if="isDropdownOpen" class="options">
+                <li
+                  v-for="option in dropdownOptions"
+                  :key="option.value"
+                  @click.stop="selectOption(option)"
+                  :class="{ selected: option.value === triCritere }"
+                >
+                  {{ option.label }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
 
         <!-- Carte droite : Liste des tâches + compteurs 60% -->
-        <div class="flex-[0.6] p-6 rounded-xl bg-[#0F0F2F]/80 border border-[#0F0F2F]/50 shadow-md flex flex-col">
+        <div class="flex-[0.6] p-6 rounded-xl bg-[#0F0F2F]/80 flex flex-col h-full md:h-[calc(100vh-8rem)]"
+             style="border: 4px solid; border-image: linear-gradient(to right, #0F0F2F, #0F4F8F, #0F0F2F) 1;">
 
-          <h3 class="text-xl font-semibold text-[#52c5ff] mt-6 mb-4 text-center">
-            Voici vos tâches à réaliser pour le <span class="font-bold text-[#E0E6F0]">{{ dateDuJour }}</span>
+          <h3 class="mt-6 mb-4 text-xl font-semibold text-center">
+            <span class="text-[#E0E6F0]">Voici vos tâches à réaliser pour</span>
+            <span class="text-[#52c5ff]"> le {{ dateDuJour }}</span>
           </h3>
 
           <div class="w-full h-2 mt-6 mb-6 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
 
-          <!-- Compteurs avec pourcentage -->
-          <div class="flex flex-col items-center space-y-2 mt-6 mb-6">
-            <p class="text-[#52c5ff] text-lg font-bold">Total des tâches : {{ nombreTotalTaches }}</p>
+          <div class="flex flex-col items-center mt-6 mb-6 space-y-2">
+            <p class="text-[#E0E6F0] text-lg font-bold">Total des tâches : {{ nombreTotalTaches }}</p>
             <p class="text-[#f8786f] text-lg font-bold">
               Vous avez réalisé {{ pourcentageTerminees }}% de vos tâches du jour
             </p>
@@ -185,8 +235,7 @@ watch(taches, (newVal) => {
 
           <div class="w-full h-2 mt-6 mb-6 bg-gradient-to-r from-[#0F0F2F] via-[#0F4F8F] to-[#0F0F2F]"></div>
 
-          <!-- Liste centrée -->
-          <div class="flex-1 mt-6 overflow-y-auto flex flex-col items-center">
+          <div class="flex flex-col items-center flex-1 min-h-0 overflow-y-auto scroll-right">
             <TodoList
               v-if="aDesTaches"
               :taches="tachesTriees"
@@ -206,24 +255,115 @@ watch(taches, (newVal) => {
 </template>
 
 <style scoped>
-.dashboard-scroll {
-  flex: 1;
-  overflow-y: auto;
+.scroll-right {
   scrollbar-width: thin;
   scrollbar-color: #52c5ff rgba(15,15,47,0.8);
-  padding-right: 12px;
-  margin-right: -6px;
 }
-.dashboard-scroll::-webkit-scrollbar {
+
+.scroll-right::-webkit-scrollbar {
   width: 8px;
 }
-.dashboard-scroll::-webkit-scrollbar-track {
+.scroll-right::-webkit-scrollbar-track {
   background: rgba(15,15,47,0.8);
   border-radius: 8px;
 }
-.dashboard-scroll::-webkit-scrollbar-thumb {
+.scroll-right::-webkit-scrollbar-thumb {
   background-color: #52c5ff;
   border-radius: 8px;
   border: 2px solid rgba(15,15,47,0.8);
+}
+
+/* Dropdown custom */
+.dropdown-container {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.dropdown-label {
+  color: #E0E6F0;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.dropdown {
+  width: 100%;
+  background-color: #011c2f;
+  border-radius: 1rem;
+  border: 1px solid rgba(15,15,47,0.5);
+  padding: 10px 14px;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  color: #E0E6F0;
+  transition: all 0.3s;
+}
+
+.dropdown:hover {
+  border-color: #C96BFF;
+  box-shadow: 0 0 15px rgba(201,107,255,0.45);
+}
+
+.dropdown.open {
+  border-color: #C96BFF;
+}
+
+.selected {
+  color: #C96BFF;
+}
+
+.arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #C96BFF;
+}
+
+.options {
+  background-color: #011c2f;
+  border: 2px solid #C96BFF;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  list-style: none;
+  padding: 0;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  bottom: 100%;
+  z-index: 20;
+}
+
+.options li {
+  padding: 10px;
+  color: #52c5ff;
+  transition: 0.15s ease;
+}
+
+.options li:hover {
+  background-color: #C96BFF;
+  color: #E0E6F0;
+}
+
+.options li.selected {
+  background-color: #C96BFF;
+  color: #E0E6F0;
+}
+
+/* Champ d'ajout de tâche : hover et focus */
+input[type="text"] {
+  border: 1px solid rgba(15,15,47,0.5);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #011c2f;
+  color: #E0E6F0;
+  transition: all 0.3s;
+}
+
+input[type="text"]:hover,
+input[type="text"]:focus {
+  border-color: #C96BFF;
+  box-shadow: 0 0 15px rgba(201, 107, 255, 0.45);
+  transform: scale(1.05);
+  outline: none;
 }
 </style>
